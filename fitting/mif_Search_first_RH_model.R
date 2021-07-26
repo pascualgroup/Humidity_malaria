@@ -26,61 +26,84 @@ now.num <- 1#seqP[x]
 
 # here we run the grid parameter function to generate the parameter grid
 
-source("param_creatGrid.R")
+source("/Users/oscarmauriciosantos/Documents/GitHub/Humidity_malaria/fitting/param_creatGrid.R")
 
-y <- S1 #read.csv("~/Dropbox/paper_humidity_delay/paramGrid_ahmedabad.csv")
+y <- s1 #read.csv("~/Dropbox/paper_humidity_delay/paramGrid_ahmedabad.csv")
 param <- as.numeric(y[now.num,])
 param.names <- colnames(y)
 names(param) <- param.names
 
-source("~/Desktop/popm_object_RH.R")
+source("/Users/oscarmauriciosantos/Documents/GitHub/Humidity_malaria/fitting/pomp_object_RH.R")
+
+# cerate the random walk verctor
+
+rdd<-rw.sd(sigOBS=0.03,
+              sigPRO=0.03,
+              muS2S1=0.03,
+              muEI1=0.03,
+              muI2S2=0.03,
+              muI2S2=0.03,
+              delta=0.03,
+              rho=ivp(0.03),
+              tau=0.03,
+              betaOUT=ivp(0.00001),
+              S1_0=ivp(0.03),
+              E_0=ivp(0.03),
+              I1_0=ivp(0.03),
+              S2_0=ivp(0.03),
+              I2_0=ivp(0.03),
+              K_0=ivp(0.03),
+              F_0=ivp(0.03),
+              b1=0.03,
+              b2=0.03,
+              b3=0.03,
+              b4=0.03,
+              b5=0.03,
+              b6=0.03,
+              bH=0.03
+)
 
 
+for (i in 1:10000){
 
-for(cont in now.num:(now.num+99)){
-  for(i in 1:3){
-    
-    seed <- ceiling(runif(1,min=1,max=2^30))
-    set.seed(seed)
-    param <- as.numeric(y[cont,])
-    names(param) <- param.names
-    cat(cont, i, "\n")
-    
-    
-    tryCatch(mif2(
-      pomp_pf_S1S2,
-      Nmif = 50,              #change from 10 to 50
-      start = param,
-      Np = 1000, #change from 1000 to 15000
-      cooling.type="hyperbolic",
-      cooling.fraction.50 = 0.5,
-      rw.sd = rw.sd(muEI = 0.03, muIQ = 0.03, muIS = 0.03, muQS = 0.03,  sigPRO = 0.03, sigOBS = 0.03,
-                    tau = 0.03, rho = 0.03, betaOUT = 0.03, bT4 = 0.03, bT6 = 0.03, b1 = 0.03, b2 = 0.03, 
-                    b3 = 0.03, b4 = 0.03, b5 = 0.03, b6 = 0.03, q0 = 0.03,
-                    S_0 = 0.03, E_0 = 0.03, I_0 = 0.03, Q_0 = 0.03 , K_0 = 0.03, F_0 = 0.03),
-      transform=TRUE),  error = function(e) e) -> mifout
+seed <- ceiling(runif(1,min=1,max=2^30))
+set.seed(seed)
+param <- as.numeric(y[i,])
+names(param) <- colnames(y)
+
+    tryCatch(mif2(po,
+                               Np=1000,
+                               Nmif=50,
+                               cooling.type="geometric",
+                               cooling.fraction.50=0.5,
+                               transform=TRUE,
+                               start=param,
+                               rw.sd=rdd,
+                               pred.mean=TRUE,
+                               filter.mean=TRUE,max.fail=500),  error = function(e) e) -> mifout
     
     if(length(coef(mifout)) > 0){
-      loglik.mif <- replicate(n=5,logLik(pfilter(pomp_pf_S1S2,
+      loglik.mif <- replicate(n=5,logLik(pfilter(po,
                                                  params=coef(mifout),Np=1000,max.fail=500)))
       bl <- logmeanexp(loglik.mif,se=TRUE)
       loglik.mif.est <- bl[1]
       loglik.mif.se <- bl[2]
-      cat(cont,loglik.mif.est,"\n")
+      cat(i,loglik.mif.est,"\n")
       
       ### SAVE OUTPUT
       if(is.finite(loglik.mif.est)){
         par.out <- coef(mifout)
         names(par.out) <- param.names
         if(file.exists("mifOutput_RH.csv")){
-          write.table(t(as.matrix(c(cont,seed,par.out,loglik.mif.est,loglik.mif.se))), 
+          write.table(t(as.matrix(c(i,seed,par.out,loglik.mif.est,loglik.mif.se))), 
                       "mifOutput_RH.csv", append = T, 
                       col.names=F, row.names=F, sep = ",")
         } else{ 
-          write.table(t(as.matrix(c(cont,seed,par.out,loglik.mif.est,loglik.mif.se))), 
+          write.table(t(as.matrix(c(i,seed,par.out,loglik.mif.est,loglik.mif.se))), 
                       "mifOutput_RH.csv", append = T, col.names=c("run","seed", 
                                                                       param.names, "loglik", "loglik.se"), row.names=F, sep = ",") }
       }
     }
   }
-}
+
+

@@ -1,4 +1,11 @@
 
+#####################################################
+###########Files to create the pomp object###########
+#####################################################
+#load Pomp package
+################################################
+#create snippets of  c++ code in R
+################################################
 
 simul_pf <- Csnippet("
                      // compute transmission rate 
@@ -164,4 +171,4 @@ pomp(
   accumvars = c("W","cases"),
   statenames = c("cases","S1","E","I1","S2","I2","K","F","W"),
   paramnames = c(par_names,vp_names,sp_names)
-) -> pomp_pf_S1S2
+) -> po
