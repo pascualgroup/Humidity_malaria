@@ -24,7 +24,7 @@ dat <- mutate(dat, temp = (temp-min(temp))/(max(temp) - min(temp)),
 
 now.num <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 
-y <- read.csv("mifOutput_RH.csv") 
+y <- read.csv("mifOutputProf_bH.csv") 
 y <- subset(y, !is.na(loglik))
 y <- arrange(y, -loglik)
 param <- as.numeric(y[now.num,(1:26)])
@@ -36,8 +36,40 @@ source("pomp_object_RH.R")
 
 index <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 temp <- seq(from = 0.0025, to=0.0065,length.out = 201)
-param['beta'] <- temp[index]
+param['bH'] <- temp[index]
 tempfilt <- -10000
+
+
+
+rdd<-rw.sd(sigOBS=0.02,
+           sigPRO=0.02,
+           muS2S1=0.02,
+           muEI1=0.02,
+           muI2S2=0.02,
+           muI2S2=0.022,
+           delta=0.02,
+           rho=ivp(0.02),
+           tau=0.02,
+           betaOUT=ivp(0.00001),
+           S1_0=ivp(0.03),
+           E_0=ivp(0.03),
+           I1_0=ivp(0.03),
+           S2_0=ivp(0.03),
+           I2_0=ivp(0.03),
+           K_0=ivp(0.03),
+           F_0=ivp(0.03),
+           b1=0.03,
+           b2=0.03,
+           b3=0.03,
+           b4=0.03,
+           b5=0.03,
+           b6=0.03,
+           bH=0.03
+)
+
+
+
+
 
 for(i in 1:50){
   seed <- ceiling(runif(1,min=1,max=2^30))
@@ -69,11 +101,11 @@ for(i in 1:50){
   }
 }
 
-if(file.exists("mifOutputProf_rho.csv")) {
-  write.table(t(as.matrix(c(index,par.out,loglik.mif.est,loglik.mif.se))), "mifOutputProf_rho.csv", 
+if(file.exists("mifOutputProf_bH.csv")) {
+  write.table(t(as.matrix(c(index,par.out,loglik.mif.est,loglik.mif.se))), "mifOutputProf_bH.csv", 
               append = T, col.names=F, row.names=F, sep = ",")
 } else{
-  write.table(t(as.matrix(c(index,par.out,loglik.mif.est,loglik.mif.se))), "mifOutputProf_rho.csv", 
+  write.table(t(as.matrix(c(index,par.out,loglik.mif.est,loglik.mif.se))), "mifOutputProf_bH.csv", 
               append = T, col.names=c("run",param.names, "loglik", "loglik.se"), row.names=F, sep = ",")
 }
 
