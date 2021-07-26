@@ -3,16 +3,18 @@ rm(list=ls())
 require(pomp)
 require(plyr)
 
-dat1 <- read.csv("~/Dropbox/paper_humidity_delay/paper/figure_4/ahmedabad/data_mal.csv",header=T)       # read in data file with the malaria data and the mosquito densityies and breeding spots. 
-dat2 <- read.csv("~/Dropbox/paper_humidity_delay/paper/figure_4/ahmedabad/covariate3.csv", header=T) #read in data file with covariates  # THIS IS CREATED with create_covariate_file3.R, and uses the temperature, rain relative humidity. 
+dat1 <- read.csv("~/Dropbox/paper_humidity_delay/paper/figure_4/ahmedabad/data_mal.csv",header=T)       # read in data file with the malaria data that is on the data folder
+dat2 <- read.csv("~/Dropbox/paper_humidity_delay/paper/figure_4/ahmedabad/covariate3.csv", header=T) #read in data file with covariates that is on the data folder
 dat <- join(dat1,dat2)
 
+## data rearreangement and creation of the interannual covariates
 splBoth <- loess(dat$pop ~ dat$time)$fitted #
 splBoth <- smooth.spline(x=dat$time, splBoth)
 
 var<-cbind(rowMeans(matrix( rep( t( matrix(dat2$RH2,ncol=12,byrow = T)[,3:8] ) , 12) , ncol =  ncol(matrix(dat2$RH2,ncol=12,byrow = T)[,3:8]) , byrow = TRUE )),rep(1:18,12))
 dat<-mutate(dat, RH_5=var[ order(var[,2]), 1] )
 
+# here we created a data set 
 dat <- mutate(dat, temp = (temp-min(temp))/(max(temp) - min(temp)),
               RH = (RH_5-min(RH_5))/(max(RH_5) - min(RH_5)),
               pop = predict(splBoth, deriv=0, x=dat$time)$y, 
@@ -20,10 +22,13 @@ dat <- mutate(dat, temp = (temp-min(temp))/(max(temp) - min(temp)),
 
 x <- as.numeric(Sys.getenv("PBS_ARRAYID"))
 seqP <- seq(from = 1, to = 50000, by = 100)
-now.num <- seqP[x]
+now.num <- 1#seqP[x]
 
+# here we run the grid parameter function to generate the parameter grid
 
-y <- read.csv("~/Dropbox/paper_humidity_delay/paramGrid_ahmedabad.csv")
+source("param_creatGrid.R")
+
+y <- S1 #read.csv("~/Dropbox/paper_humidity_delay/paramGrid_ahmedabad.csv")
 param <- as.numeric(y[now.num,])
 param.names <- colnames(y)
 names(param) <- param.names
@@ -43,7 +48,7 @@ for(cont in now.num:(now.num+99)){
     
     
     tryCatch(mif2(
-      po,
+      pomp_pf_S1S2,
       Nmif = 50,              #change from 10 to 50
       start = param,
       Np = 1000, #change from 1000 to 15000
@@ -56,7 +61,7 @@ for(cont in now.num:(now.num+99)){
       transform=TRUE),  error = function(e) e) -> mifout
     
     if(length(coef(mifout)) > 0){
-      loglik.mif <- replicate(n=5,logLik(pfilter(po,
+      loglik.mif <- replicate(n=5,logLik(pfilter(pomp_pf_S1S2,
                                                  params=coef(mifout),Np=1000,max.fail=500)))
       bl <- logmeanexp(loglik.mif,se=TRUE)
       loglik.mif.est <- bl[1]

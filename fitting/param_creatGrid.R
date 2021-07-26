@@ -60,6 +60,6 @@ colnames(s1) <- c(
 
 s1 <- as.data.frame(s1)
 
-write.csv(s1,file="~/Dropbox/paper_humidity_delay/paramGrid_surat.csv",row.names=F)	
+write.csv(s1,file="~/paramGrid_surat.csv",row.names=F)	
 
 

@@ -164,4 +164,4 @@ pomp(
   accumvars = c("W","cases"),
   statenames = c("cases","S1","E","I1","S2","I2","K","F","W"),
   paramnames = c(par_names,vp_names,sp_names)
-) -> pomp_S1EI1I2S2_pf
+) -> pomp_pf_S1S2
